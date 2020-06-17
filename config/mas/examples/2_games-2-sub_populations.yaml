@@ -1,0 +1,87 @@
+games:
+
+  # 2-player game with two cars encountering each other in an intersection
+  - name: Intersection game
+    contexts:
+      - front-left(car-to-right)
+      - front-right(car-to-left)
+    utilities:
+      ('go', 'go'): 0.0
+      ('go', 'stop'): 1.0
+      ('stop', 'go'): 1.0
+      ('stop', 'stop'): 0.2
+
+  # 2-player game with two cars forming a line moving forward
+  - name: Prevention game
+    contexts:
+      - behind(car-same-dir)
+      - front-left(car-same-dir)
+    utilities:
+      ('go', 'go'): 0.5
+      ('go', 'stop'): 1.0
+      ('stop', 'go'): 0.0
+      ('stop', 'stop'): 0.2
+
+# Inter-dependencies between games
+gameDependencies:
+  ('Intersection game', 0): ('Prevention game', 0)
+  ('Intersection game', 1): ('Prevention game', 0)
+
+# Agent population, composed of multiple homogeneous sub-populations with the same profile, or payoffs
+population:
+
+  # Sub-population of aggressive drivers
+  - name: Aggressive drivers
+    frequency: 0.2
+    gamePayoffs:
+      - gameName: Intersection game
+        payoffs:
+          ('go', 'go'):      [0.0, 0.0]
+          ('go', 'stop'):    [0.7, 0.5]
+          ('go', 'acc'):     [1.0, 1.0]
+          ('stop', 'go'):    [0.5, 0.7]
+          ('stop', 'stop'):  [0.3, 0.3]
+          ('stop', 'acc'):   [0.5, 0.7]
+          ('acc', 'go'):     [1.0, 1.0]
+          ('acc', 'stop'):   [0.7, 0.5]
+          ('acc', 'acc'):    [0.0, 0.0]
+
+      - gameName: Prevention game
+        payoffs:
+          ('go', 'go'):      [0.7, 0.7]
+          ('go', 'stop'):    [1.0, 0.5]
+          ('go', 'acc'):     [0.0, 0.0]
+          ('stop', 'go'):    [0.0, 0.0]
+          ('stop', 'stop'):  [0.3, 0.3]
+          ('stop', 'acc'):   [0.0, 0.0]
+          ('acc', 'go'):     [1.0, 1.0]
+          ('acc', 'stop'):   [0.7, 0.5]
+          ('acc', 'acc'):    [0.5, 0.5]
+
+  # Sub-population of prudent drivers
+  - name: Prudent drivers
+    frequency: 0.8
+    gamePayoffs:
+      - gameName: Intersection game
+        payoffs:
+          ('go', 'go'):      [0.0, 0.0]
+          ('go', 'stop'):    [1.0, 0.7]
+          ('go', 'acc'):     [1.0, 0.3]
+          ('stop', 'go'):    [0.7, 1.0]
+          ('stop', 'stop'):  [0.5, 0.5]
+          ('stop', 'acc'):   [0.5, 0.3]
+          ('acc', 'go'):     [0.3, 1.0]
+          ('acc', 'stop'):   [0.3, 0.5]
+          ('acc', 'acc'):    [0.0, 0.0]
+
+      - gameName: Prevention game
+        payoffs:
+          ('go', 'go'):      [0.7, 0.7]
+          ('go', 'stop'):    [1.0, 0.7]
+          ('go', 'acc'):     [0.0, 0.0]
+          ('stop', 'go'):    [0.0, 0.0]
+          ('stop', 'stop'):  [0.5, 0.5]
+          ('stop', 'acc'):   [0.0, 0.0]
+          ('acc', 'go'):     [0.5, 1.0]
+          ('acc', 'stop'):   [0.3, 0.5]
+          ('acc', 'acc'):    [0.3, 0.3]

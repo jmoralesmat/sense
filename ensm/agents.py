@@ -66,7 +66,8 @@ class AgentContext(object):
             heading towards the left from its perspective, and 'front(car-to-left)' describes a car in front of
             the reference car which is heading towards the left
         """
-        pred_terms = [p.strip() for p in ctxt_desc.split('&')]
+        pred_terms = sorted([p.strip() for p in ctxt_desc.split('&')])
+
         assert len(pred_terms) > 0, 'The number of predicates must be at least 1'
 
         self.__context = {}
