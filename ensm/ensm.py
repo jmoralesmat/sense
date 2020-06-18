@@ -1,9 +1,13 @@
-import numpy as np
+from ensm.games import GamesNetwork
+from ensm.mas import MAS
+
+from collections import defaultdict
 
 
 class ENSM(object):
-    def __init__(self, mas, max_generations):
+    def __init__(self, mas: MAS, games_net: GamesNetwork, max_generations: int):
         self.__max_generations = max_generations
+        self.__games_net = games_net
         self.__mas = mas
 
         self.__must_evolve_norms = True
@@ -33,12 +37,16 @@ class ENSM(object):
         # Adjust norm frequencies (because of norm reproduction)
         self.__adjust_norm_frequencies()
 
-        fitnesses = [self.__get_fitness(sub_population) for sub_population in self.mas.population]
+        # Get population fitnesses organised by context
+        context_fitness = defaultdict(list)
+        for context in self.__games_net.contexts:
+            for sub_population in self.mas.population:
+                context_fitness[context].append(sub_population.fitness[context])
 
         self.__converged = True  # TODO Change this
         self.__timeout = self.__num_generations > self.__max_generations
 
-        return fitnesses
+        return context_fitness
 
     def __evolve_strategies(self):
         pass
@@ -49,14 +57,8 @@ class ENSM(object):
     def __evolve_norms(self):
         pass
 
-    def adjust_norm_frequencies(self):
-        pass
-
     def __adjust_norm_frequencies(self):
         pass
-
-    def __get_fitness(self, profile):
-        return np.float64(0)
 
     @property
     def mas(self):
@@ -69,3 +71,6 @@ class ENSM(object):
     @property
     def converged(self):
         return self.__converged
+
+
+

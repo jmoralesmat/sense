@@ -1,8 +1,4 @@
-from collections import defaultdict
-from typing import List, Tuple
-
-from ensm.games import Game
-from ensm.norms import Norm
+from typing import Dict, Set
 import numpy as np
 
 
@@ -10,43 +6,60 @@ class AgentSubPopulation(object):
     """ A homogeneous sub-population of agents with the same profile. The agents within a sub-population
     will all have the same payoffs in each role of each possible game they can play in a MAS """
 
-    def __init__(self, frequency: float, payoffs: dict, norms: List[Norm]=None):
+    def __init__(self, frequency: float, payoffs: dict, action_spaces: Dict[str, Set], norm_spaces: Dict[str, Set]):
         """
         Initialises an agent sub-population with a given frequency, a dictionary of payoffs for each triplet
         (role, action_combination) that they can play in each possible game, and the frequencies of each norm
         within the sub-population (which virtually splits the sub-population in as many sub-sub-population as norms)
 
-        :param frequency: frequency of the agent sub-population
-        :param payoffs: dictionary of (game, action_combination, role) -> player payoff
-        :param norms: set of possible norms to be applied to each player of the game
+        :param frequency: frequency of the agent sub-population in the whole MAS
+        :param payoffs: base payoff that an agent expects to obtain when playing a particular role of a game and
+        a given combination of actions is played by all the players of the game (including the agent itself).
+        This variable should be a dictionary of (game, role, action_combination) -> player payoff
+        :param norm_spaces: dictionary of agent contexts to the sets of norms applicable in them
+        :param norm_spaces: dictionary of agent contexts to the sets of actions that can be performed in them
         """
         self.__frequency = frequency
         self.__payoffs = payoffs
-        self.__norms = norms if norms is not None else [None]
 
-        # Frequencies of each norm in the sub-population
-        self.__norm_freqs = {n: 1/len(self.__norms) for n in self.__norms}
-        self.__action_freqs = defaultdict(lambda: defaultdict(lambda: defaultdict(np.float64)))
+        # Frequencies of each norm in each possible context that the sub-population may encounter in all games.
+        # This data structure is of the form: context -> norm -> norm_frequency
+        self.__norm_freqs = {ctxt: {n: np.float64(1 / np.float64(len(norm_spaces[ctxt])))
+                                    for n in list(norm_spaces[ctxt])} for ctxt in norm_spaces}
+
+        # Split of the sub-population by norms, where each sub-sub-population will have a different norm for
+        # each context they may encounter in the MAS, and hence, may have different frequencies for each
+        # action in the action space of each context. This data structure is a dictionary of the form
+        # context -> norm -> action -> action_frequency
+        self.__action_freqs = {ctxt: {n: {a: np.float64(1 / np.float64(len(action_spaces[ctxt])))
+                                          for a in action_spaces[ctxt]} for n in norm_spaces[ctxt]}
+                               for ctxt in norm_spaces}
+
+        # Fitness (expected average payoff) of the sub-population with a given norm when it repeatedly
+        # interacts in a coordination context with other agents from its same sub-population and
+        # other sub-populations, each having different frequencies
+        self.__fitness = {ctxt: {n: {a: np.float64(0) for a in action_spaces[ctxt]} for n in norm_spaces[ctxt]}
+                          for ctxt in norm_spaces}
 
     @property
     def frequency(self):
         return self.__frequency
 
-    def payoff(self, action_combination: Tuple[str], role: int, game: Game):
-        """
-        Returns the base payoff that an agent expects to obtain when playing a particular role of a game
-        and a given combination of actions is played by all the players of the game (including the agent itself)
+    @property
+    def payoff(self):
+        return self.__payoffs
 
-        :param action_combination: a combination of actions carried out by the players of a game
-        :param role: the role of the agent to get the payoff from
-        :param game: a game to be played by a group of agents, each with some role
-        :return: a scalar defining the agent's payoff
-        """
-        return self.__payoffs[game][action_combination][role]
+    @property
+    def norm_freqs(self):
+        return self.__norm_freqs
 
     @property
     def action_freqs(self):
         return self.__action_freqs
+
+    @property
+    def fitness(self):
+        return self.__fitness
 
 
 class AgentContext(object):

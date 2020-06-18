@@ -1,7 +1,5 @@
-from networkx.algorithms.dag import ancestors, descendants
 from collections import defaultdict
 from typing import List, Dict
-import networkx as nx
 
 
 class Game(object):
@@ -18,8 +16,16 @@ class Game(object):
         self.__utilities = utilities
         self.__name = name
 
+        self.__action_spaces = defaultdict(set)
+        for role in range(self.num_roles):
+            for ac_comb in self.__utilities:
+                self.__action_spaces[role].add(ac_comb[role])
+
     def utility(self, action_combination: tuple):
         return self.__utilities[action_combination]
+
+    def action_space(self, role):
+        return self.__action_spaces[role]
 
     @property
     def num_roles(self):
@@ -43,7 +49,7 @@ class GamesNetwork(object):
 
     def __init__(self, games: Dict[str, Game], dependencies: List[tuple]):
         self.__dependencies = defaultdict(lambda: defaultdict(set))
-        self.__contexts_graph = nx.DiGraph()
+        # self.__contexts_graph = nx.DiGraph()
         self.__games = games
 
         # Add each agent context from each game as a new coordination context to regulate
@@ -69,22 +75,18 @@ class GamesNetwork(object):
         self.__dependencies[game_a][role_a].add(game_role_b)
         self.__dependencies[game_b][role_b].add(game_role_a)
 
-        # Generate and add the joint contexts resulting from the interdependency from the two games
-        context_a = game_a.contexts[role_a]
-        context_b = game_b.contexts[role_b]
-
-        if context_a != context_b:
-
-            # Generate joint context and keep track of the game/roles in which it applies in both directions
-            # (from a game-role to the context and from the context to the game-roles it plays)
-            joint_context = ' & '.join([context_a, context_b])
+        # Generate joint context and keep track of the game/roles in which it applies in both directions
+        # (from a game-role to the context and from the context to the game-roles it plays)
+        # TODO Might need to sort contexts for consistence? Check this when testing
+        if game_a.contexts[role_a] != game_b.contexts[role_b]:
+            joint_context = ' & '.join([game_a.contexts[role_a], game_b.contexts[role_b]])
             self.__coord_contexts[game_a][role_a].add(joint_context)
             self.__coord_contexts[game_b][role_b].add(joint_context)
             self.__played_roles[joint_context][game_a].add(role_a)
             self.__played_roles[joint_context][game_b].add(role_b)
 
-            # Add the joint context as parent of the two joined contexts
-            self.__contexts_graph.add_edges_from([(joint_context, context_a), (joint_context, context_b)])
+            # # Add the joint context as parent of the two joined contexts
+            # self.__contexts_graph.add_edges_from([(joint_context, context_a), (joint_context, context_b)])
 
     def dependencies(self, game, role):
         """
@@ -102,13 +104,12 @@ class GamesNetwork(object):
         :param role: the role of a game
         :return: set of contexts applicable to the game's role
         """
-        contexts = self.__coord_contexts[game][role]
-        all_contexts = set(contexts)
-        for context in contexts:
-            ancest = ancestors(self.__contexts_graph, context)
-            all_contexts = all_contexts.union(ancest)
-
-        return all_contexts
+        return self.__coord_contexts[game][role]
+        # all_contexts = set(contexts)
+        # for context in contexts:
+        #     all_contexts = all_contexts.union(ancestors(self.__contexts_graph, context))
+        #
+        # return all_contexts
 
     def played_roles(self, context):
         """
@@ -122,3 +123,8 @@ class GamesNetwork(object):
     def games(self):
         """ Returns a dictionary of games with their names being the keys of the dictionary """
         return self.__games
+
+    @property
+    def contexts(self):
+        return [context for game in self.__coord_contexts for role in self.__coord_contexts[game]
+                for context in self.__coord_contexts[game][role]]
