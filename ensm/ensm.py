@@ -87,11 +87,19 @@ class ENSM(object):
         return context_fitness
 
     def __evolve_strategies(self):
+        """ Evolve strategies """
         for sub_population in self.mas.population:
-            StrategyReplicator.update_fitness(sub_population=sub_population, games_net=self.__games_net)
-            StrategyReplicator.replicate(sub_population=sub_population, games_net=self.__games_net)
+            StrategyReplicator.update_fitness(sub_population=sub_population,
+                                              games_net=self.__games_net,
+                                              action_spaces=self.action_spaces,
+                                              norm_spaces=self.norm_spaces,
+                                              mean_action_freqs_by_game=self.__mean_action_freqs_by_game,
+                                              fitness_aggregation=min)
+            StrategyReplicator.replicate(sub_population=sub_population,
+                                         games_net=self.__games_net)
 
     def __evolve_norms(self):
+        """ Evolve norms """
         for context in self.games_net.contexts:
             NormReplicator.update_utilities(context=context,
                                             norm_space=self.norm_spaces[context],
@@ -133,7 +141,7 @@ class ENSM(object):
                 self.__mean_action_freqs_by_context[context][action] = mean_action_freq
 
         # Compute the global action frequencies per game and role, averaged across all norms and sub-populations
-        for game, role in [(game, role) for game in self.games_net.games for role in range(game.num_roles)]:
+        for game, role in [(game, role) for game in self.games_net.games.values() for role in range(game.num_roles)]:
             for action in game.action_space(role):
                 contexts_playing = self.games_net.contexts_playing(game, role)
 

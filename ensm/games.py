@@ -18,10 +18,13 @@ class Game(object):
         self.__sanctions = sanctions
 
         # Create action spaces of each role of the game
-        self.__action_spaces = defaultdict(set)
+        self.__action_spaces = defaultdict(list)
         for role in range(self.num_roles):
             for ac_comb in self.__utilities:
-                self.__action_spaces[role].add(ac_comb[role])
+
+                action = ac_comb[role]
+                if action not in self.__action_spaces[role]:
+                    self.__action_spaces[role].append(ac_comb[role])
 
     def utility(self, action_combination: tuple):
         return self.__utilities[action_combination]

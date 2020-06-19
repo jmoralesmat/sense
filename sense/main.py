@@ -65,8 +65,8 @@ def __create_games(config) -> GamesNetwork:
 
 
 def __create_action_spaces_and_norms(games_net):
-    action_spaces = defaultdict(set)
-    norm_spaces = defaultdict(set)
+    action_spaces = defaultdict(list)
+    norm_spaces = defaultdict(list)
 
     # Get all possible pairs of (game, role) that the agents can play
     game_roles = [(game, role) for game in games_net.games.values() for role in range(game.num_roles)]
@@ -79,9 +79,11 @@ def __create_action_spaces_and_norms(games_net):
 
         # Create the action space of each context and a norm for each possible action in the action space
         for context, action in context_actions:
-            action_spaces[context].add(action)
-            for sanction in sanctions:
-                norm_spaces[context].add(Norm(context, action, sanction))
+            if action not in action_spaces[context]:
+                action_spaces[context].append(action)
+
+                for sanction in sanctions:
+                    norm_spaces[context].append(Norm(context, action, sanction))
 
     return action_spaces, norm_spaces
 
@@ -103,7 +105,8 @@ def __create_population(games_net: GamesNetwork, action_spaces: dict, norm_space
             for ac_combination, payoffs in game_payoffs['payoffs'].items():
                 all_payoffs[game][literal_eval(ac_combination)] = payoffs
 
-        population.append(AgentSubPopulation(frequency=sub_population['frequency'],
+        population.append(AgentSubPopulation(name=sub_population['name'],
+                                             frequency=sub_population['frequency'],
                                              payoffs=all_payoffs,
                                              action_spaces=action_spaces,
                                              norm_spaces=norm_spaces))

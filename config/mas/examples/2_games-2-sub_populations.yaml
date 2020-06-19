@@ -8,8 +8,13 @@ games:
     utilities:
       ('go', 'go'): 0.0
       ('go', 'stop'): 1.0
+      ('go', 'acc'): 0.7
       ('stop', 'go'): 1.0
       ('stop', 'stop'): 0.2
+      ('stop', 'acc'): 0.5
+      ('acc', 'go'): 0.7
+      ('acc', 'stop'): 0.5
+      ('acc', 'acc'): 0.0
 
   # 2-player game with two cars forming a line moving forward
   - name: Prevention game
@@ -19,8 +24,13 @@ games:
     utilities:
       ('go', 'go'): 0.5
       ('go', 'stop'): 1.0
+      ('go', 'acc'): 0.0
       ('stop', 'go'): 0.0
       ('stop', 'stop'): 0.2
+      ('stop', 'acc'): 0.0
+      ('acc', 'go'): 0.5
+      ('acc', 'stop'): 0.3
+      ('acc', 'acc'): 0.3
 
 # Inter-dependencies between games
 gameDependencies:
