@@ -23,23 +23,24 @@ class AgentSubPopulation(object):
         self.__payoffs = payoffs
 
         # Frequencies of each norm in each possible context that the sub-population may encounter in all games.
-        # This data structure is of the form: context -> norm -> norm_frequency
-        self.__norm_freqs = {ctxt: {n: np.float64(1 / np.float64(len(norm_spaces[ctxt])))
-                                    for n in list(norm_spaces[ctxt])} for ctxt in norm_spaces}
+        # This data structure is of the form: context -> norm -> frequency
+        self.__norm_freqs = {c: {n: np.float64(1 / np.float64(len(norm_spaces[c]))) for n in list(norm_spaces[c])}
+                             for c in norm_spaces}
 
-        # Split of the sub-population by norms, where each sub-sub-population will have a different norm for
+        # Split of the sub-population by norms, where each sub-sub-population has a different norm for
         # each context they may encounter in the MAS, and hence, may have different frequencies for each
         # action in the action space of each context. This data structure is a dictionary of the form
-        # context -> norm -> action -> action_frequency
-        self.__action_freqs = {ctxt: {n: {a: np.float64(1 / np.float64(len(action_spaces[ctxt])))
-                                          for a in action_spaces[ctxt]} for n in norm_spaces[ctxt]}
-                               for ctxt in norm_spaces}
+        # context -> norm -> action -> frequency
+        self.__action_freqs = {c: {n: {a: np.float64(1 / np.float64(len(action_spaces[c])))
+                                       for a in action_spaces[c]} for n in norm_spaces[c]}
+                               for c in norm_spaces}
 
         # Fitness (expected average payoff) of the sub-population with a given norm when it repeatedly
         # interacts in a coordination context with other agents from its same sub-population and
         # other sub-populations, each having different frequencies
-        self.__fitness = {ctxt: {n: {a: np.float64(0) for a in action_spaces[ctxt]} for n in norm_spaces[ctxt]}
-                          for ctxt in norm_spaces}
+        self.__fitness = {c: {n: {a: np.float64(0) for a in action_spaces[c]}
+                              for n in norm_spaces[c]}
+                          for c in norm_spaces}
 
     @property
     def frequency(self):
@@ -51,10 +52,12 @@ class AgentSubPopulation(object):
 
     @property
     def norm_freqs(self):
+        """ Returns dictionary of the form context -> norm -> frequency """
         return self.__norm_freqs
 
     @property
     def action_freqs(self):
+        """ Returns dictionary of the form context -> norm -> action -> frequency """
         return self.__action_freqs
 
     @property

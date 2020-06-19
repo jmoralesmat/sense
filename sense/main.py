@@ -30,7 +30,11 @@ def main(config):
 
     # Create the MAS, the Evolutionary Norm Synthesis Machine, and run evolution until convergence
     mas = MAS(games_net=games_net, population=population)
-    ensm = ENSM(mas=mas, games_net=games_net, max_generations=MAX_GENERATIONS)
+    ensm = ENSM(mas=mas,
+                games_net=games_net,
+                action_spaces=action_spaces,
+                norm_spaces=norm_spaces,
+                max_generations=MAX_GENERATIONS)
 
     while not ensm.converged:
         fitnesses = ensm.evolve()
@@ -67,6 +71,7 @@ def __create_action_spaces_and_norms(games_net):
     # Get all possible pairs of (game, role) that the agents can play
     game_roles = [(game, role) for game in games_net.games.values() for role in range(game.num_roles)]
     for game, role in game_roles:
+        sanctions = [None] if game.sanctions is None else game.sanctions
 
         # Get all possible pairs (context, action) of actions that the agents can perform in each context
         context_actions = [(context, action) for context in games_net.contexts_playing(game, role)
@@ -75,7 +80,8 @@ def __create_action_spaces_and_norms(games_net):
         # Create the action space of each context and a norm for each possible action in the action space
         for context, action in context_actions:
             action_spaces[context].add(action)
-            norm_spaces[context].add(Norm(context, action))
+            for sanction in sanctions:
+                norm_spaces[context].add(Norm(context, action, sanction))
 
     return action_spaces, norm_spaces
 
@@ -99,8 +105,8 @@ def __create_population(games_net: GamesNetwork, action_spaces: dict, norm_space
 
         population.append(AgentSubPopulation(frequency=sub_population['frequency'],
                                              payoffs=all_payoffs,
-                                             norm_spaces=norm_spaces,
-                                             action_spaces=action_spaces))
+                                             action_spaces=action_spaces,
+                                             norm_spaces=norm_spaces))
 
     return population
 

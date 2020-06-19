@@ -5,7 +5,7 @@ from typing import List, Dict
 class Game(object):
     """ A strategic situation played between two or more players that interact, each playing one role of the game """
 
-    def __init__(self, name, contexts, utilities):
+    def __init__(self, name, contexts, utilities, sanctions=None):
         """
         Creates a game
         :param name: descriptive name of the game
@@ -15,7 +15,9 @@ class Game(object):
         self.__player_contexts = contexts
         self.__utilities = utilities
         self.__name = name
+        self.__sanctions = sanctions
 
+        # Create action spaces of each role of the game
         self.__action_spaces = defaultdict(set)
         for role in range(self.num_roles):
             for ac_comb in self.__utilities:
@@ -40,6 +42,9 @@ class Game(object):
         return self.__name
 
     @property
+    def sanctions(self):
+        return self.__sanctions
+
     def __str__(self):
         return self.name
 
@@ -53,13 +58,13 @@ class GamesNetwork(object):
         self.__games = games
 
         # Add each agent context from each game as a new coordination context to regulate
-        self.__coord_contexts = defaultdict(lambda: defaultdict(set))
-        self.__played_roles = defaultdict(lambda: defaultdict(set))
+        self.__contexts_per_role = defaultdict(lambda: defaultdict(set))
+        self.__roles_per_context = defaultdict(lambda: defaultdict(set))
 
         for game in games.values():
             for role, ctxt in enumerate(game.contexts):
-                self.__coord_contexts[game][role].add(ctxt)
-                self.__played_roles[ctxt][game].add(role)
+                self.__contexts_per_role[game][role].add(ctxt)
+                self.__roles_per_context[ctxt][game].add(role)
 
         for (game_role_a, game_role_b) in dependencies:
             self.add_dependency(game_role_a, game_role_b)
@@ -80,10 +85,10 @@ class GamesNetwork(object):
         # TODO Might need to sort contexts for consistence? Check this when testing
         if game_a.contexts[role_a] != game_b.contexts[role_b]:
             joint_context = ' & '.join([game_a.contexts[role_a], game_b.contexts[role_b]])
-            self.__coord_contexts[game_a][role_a].add(joint_context)
-            self.__coord_contexts[game_b][role_b].add(joint_context)
-            self.__played_roles[joint_context][game_a].add(role_a)
-            self.__played_roles[joint_context][game_b].add(role_b)
+            self.__contexts_per_role[game_a][role_a].add(joint_context)
+            self.__contexts_per_role[game_b][role_b].add(joint_context)
+            self.__roles_per_context[joint_context][game_a].add(role_a)
+            self.__roles_per_context[joint_context][game_b].add(role_b)
 
             # # Add the joint context as parent of the two joined contexts
             # self.__contexts_graph.add_edges_from([(joint_context, context_a), (joint_context, context_b)])
@@ -104,7 +109,7 @@ class GamesNetwork(object):
         :param role: the role of a game
         :return: set of contexts applicable to the game's role
         """
-        return self.__coord_contexts[game][role]
+        return self.__contexts_per_role[game][role]
         # all_contexts = set(contexts)
         # for context in contexts:
         #     all_contexts = all_contexts.union(ancestors(self.__contexts_graph, context))
@@ -117,7 +122,7 @@ class GamesNetwork(object):
         :param context: an agent's context
         :return: a dictionary of game roles where the context is applicable
         """
-        return self.__played_roles[context]
+        return self.__roles_per_context[context]
 
     @property
     def games(self):
@@ -126,5 +131,6 @@ class GamesNetwork(object):
 
     @property
     def contexts(self):
-        return [context for game in self.__coord_contexts for role in self.__coord_contexts[game]
-                for context in self.__coord_contexts[game][role]]
+        return list(self.__roles_per_context.keys())
+        # return [context for game in self.__contexts_per_role for role in self.__contexts_per_role[game]
+        #         for context in self.__contexts_per_role[game][role]]
