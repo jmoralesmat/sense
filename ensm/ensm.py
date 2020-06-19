@@ -76,10 +76,10 @@ class ENSM(object):
             self.__evolve_norms()
 
         # Get population fitnesses organised by context
-        context_fitness = defaultdict(list)
+        context_fitness = defaultdict(dict)
         for context in self.__games_net.contexts:
             for sub_population in self.mas.population:
-                context_fitness[context].append(sub_population.fitness[context])
+                context_fitness[context][sub_population] = sub_population.fitness[context]
 
         self.__converged = True  # TODO Change this
         self.__timeout = self.__num_generations > self.__max_generations
