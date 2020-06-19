@@ -1,8 +1,3 @@
-from ensm.agents import AgentSubPopulation
-from ensm.games import GamesNetwork
-from typing import List
-
-
 class Norm(object):
     NORM_COUNT = 0
 
@@ -40,5 +35,10 @@ class NormReplicator(object):
     def __init__(self):
         pass
 
-    def replicate(self, sub_population: List[AgentSubPopulation], games_net: GamesNetwork):
+    @staticmethod
+    def update_utilities(context, norm_space, action_freqs, action_freqs_by_norm):
+        pass
+
+    @staticmethod
+    def replicate(context, norm_freqs, norm_utilities):
         pass

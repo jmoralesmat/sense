@@ -1,6 +1,6 @@
 from ensm.strategies import StrategyReplicator
+from ensm.norms import NormReplicator
 from ensm.games import GamesNetwork
-from ensm.norms import Norm
 from ensm.mas import MAS
 
 from collections import defaultdict
@@ -15,7 +15,7 @@ class ENSM(object):
         self.__games_net = games_net
         self.__mas = mas
 
-        self.__must_evolve_norms = True
+        self.__must_evolve_norms = False
         self.__num_generations = 0
         self.__new_norms = []
 
@@ -29,6 +29,10 @@ class ENSM(object):
         # of a context should sum up to 1)
         self.__norm_freqs = {c: {n: np.float64(1 / len(norm_spaces[c])) for n in norm_spaces[c]}
                              for c in norm_spaces.keys()}
+
+        # Dictionary of context -> norm -> utility that stores the utilities of each norm
+        # in the norm space of each context that the agents can perceive in the MAS
+        self.__norm_utilities = {c: {n: np.float64(0) for n in norm_spaces[c]} for c in norm_spaces.keys()}
 
         # Dictionary of context -> norm -> action -> frequency that stores the overall frequency with which
         # the agents in the MAS population with a given norm perform the action in a context, no matter their profile
@@ -71,9 +75,6 @@ class ENSM(object):
         if self.__must_evolve_norms:
             self.__evolve_norms()
 
-        # Adjust norm frequencies (because of norm reproduction)
-        self.__adjust_norm_frequencies()
-
         # Get population fitnesses organised by context
         context_fitness = defaultdict(list)
         for context in self.__games_net.contexts:
@@ -87,8 +88,18 @@ class ENSM(object):
 
     def __evolve_strategies(self):
         for sub_population in self.mas.population:
-            StrategyReplicator.update_fitness(sub_population, self.__games_net)
-            StrategyReplicator.replicate(sub_population, self.__games_net)
+            StrategyReplicator.update_fitness(sub_population=sub_population, games_net=self.__games_net)
+            StrategyReplicator.replicate(sub_population=sub_population, games_net=self.__games_net)
+
+    def __evolve_norms(self):
+        for context in self.games_net.contexts:
+            NormReplicator.update_utilities(context=context,
+                                            norm_space=self.norm_spaces[context],
+                                            action_freqs=self.__mean_action_freqs_by_context,
+                                            action_freqs_by_norm=self.__mean_action_freqs_by_norm)
+            NormReplicator.replicate(context=context,
+                                     norm_freqs=self.__norm_freqs,
+                                     norm_utilities=self.__norm_utilities)
 
     def __update_action_frequencies(self):
         """
@@ -130,14 +141,6 @@ class ENSM(object):
                                              for context in contexts_playing) / np.float64(len(contexts_playing)))
 
                 self.__mean_action_freqs_by_game[game][role][action] = action_freq
-
-    def __evolve_norms(self):
-        for sub_population in self.mas.population:
-            StrategyReplicator.update_fitness(sub_population, self.__games_net)
-            StrategyReplicator.replicate(sub_population, self.__games_net)
-
-    def __adjust_norm_frequencies(self):
-        pass
 
     @property
     def mas(self):
