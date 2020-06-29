@@ -1,8 +1,6 @@
 from ensm.agents import AgentSubPopulation
 from ensm.games import GamesNetwork, Game
 from ensm.norms import Norm
-
-from typing import List
 import numpy as np
 import itertools
 
@@ -34,7 +32,7 @@ class StrategyReplicator(object):
                     all_played_roles = games_net.played_roles(context).items()
                     for game, role in [(game, role) for game, roles in all_played_roles for role in roles]:
                         fitness_in_game = StrategyReplicator.__compute_fitness_in_game(
-                            game=game, role=role, action=action, norm=norm, sub_population=sub_population,
+                            game=game, role=role, action=action, sub_population=sub_population,
                             mean_action_freqs_by_game=mean_action_freqs_by_game
                         )
                         all_fitnesses.append(fitness_in_game)
@@ -43,14 +41,13 @@ class StrategyReplicator(object):
                     sub_population.fitness[context][norm][action] = fitness_aggregation(all_fitnesses)
 
     @staticmethod
-    def __compute_fitness_in_game(game: Game, role: int, action: str, norm: Norm,
-                                  sub_population: AgentSubPopulation, mean_action_freqs_by_game: dict):
+    def __compute_fitness_in_game(game: Game, role: int, action: str, sub_population: AgentSubPopulation,
+                                  mean_action_freqs_by_game: dict):
         """
 
         :param game:
         :param role:
         :param action:
-        :param norm:
         :param sub_population:
         :param mean_action_freqs_by_game:
         :return:
@@ -77,50 +74,6 @@ class StrategyReplicator(object):
 
         return fitness
 
-    """
-    BigDecimal fitness = BigDecimal.ZERO;
-    int numRoles = game.getNumRoles();
-
-    /* Retrieve all the action combinations in which 
-     * the agent playing role i performs the action */
-    List<Combination<String>> allAcCombns = 
-            GameUtilities.getActionCombinations(game, numRoles);
-
-    /* Retrieve those strategy combinations in which player i has 
-     * adopted the strategy of which we are computing the fitness */
-    List<Combination<String>> acCombns = 
-            new ArrayList<Combination<String>>();
-
-    for(Combination<String> ac : allAcCombns) {
-        if(ac.get(role).equals(action)) {
-            acCombns.add(ac);
-        }
-    }
-
-    /* For each possible strategy combination, get the payoff to player i 
-     * once the players of the game perform the combination of actions 
-     * dictated by their respective strategies in the strategy combination.
-     * Once the payoff is retrieved, add it to the fitness computation
-     * by weighting it with the probability that the agents play 
-     * the game with that combination of strategies */
-    for(Combination<String> ac : acCombns) {
-
-        /* Compute reduced payoff of the triple <role,action,norm>*/
-        BigDecimal redPayoff = this.getReducedPayoff(ac, role, 
-                action, norm, game, pFunc);
-
-        /* Get the joint probability that the agents play the game 
-         * by adopting that combination of strategies */
-        BigDecimal intrcProb = GameUtilities.getJointProbability(game, ac, 
-                role, avgAcProbs);
-
-        /* Computed weighted payoff */
-        BigDecimal weightedPayoff = redPayoff.multiply(intrcProb);
-        fitness = fitness.add(weightedPayoff);
-    }
-    return fitness;
-    """
-
     @staticmethod
     def __get_action_combination_frequency(game: Game, action_combination: tuple, reference_role: int,
                                            mean_action_freqs_by_game: dict):
@@ -140,32 +93,34 @@ class StrategyReplicator(object):
 
         return action_comb_freq
 
-    """
-    public static BigDecimal getJointProbability(Game game, 
-        Combination<String> acCombn, int refRole, 
-        AverageActionProbabilities avgAcProbs) {
-
-    int numRoles = acCombn.size();
-    BigDecimal jointProb = BigDecimal.ONE;
-
-    /* Compute the probability that a group of agents interact while 
-     * having the strategy combination (computed as the joint frequency 
-     * of each one of the strategy in the strategy combination */
-    for(int role=0; role<numRoles; role++) {
-
-        /* We do not consider the frequency of the strategy applicable to 
-         * the role that is being evaluated, only the frequency of 
-         * the strategies applicable to the other roles */
-        if(role == refRole) {
-            continue;
-        }
-        String playerAction = acCombn.get(role);
-        BigDecimal avgAcProb = avgAcProbs.get(role, playerAction, game); // TODO WRONG!!!
-        jointProb = jointProb.multiply(avgAcProb);
-    }
-    return jointProb;
-}
-    """
     @staticmethod
-    def replicate(sub_population: List[AgentSubPopulation], games_net: GamesNetwork):
-        pass
+    def replicate(sub_population: AgentSubPopulation, games_net: GamesNetwork, action_spaces: dict, norm_spaces: dict):
+        """
+
+        :param sub_population:
+        :param games_net:
+        :param action_spaces:
+        :param norm_spaces:
+        :return:
+        """
+        for context in games_net.contexts:
+            action_space = action_spaces[context]
+
+            for norm in norm_spaces[context]:
+
+                # Compute mean sub-population fitness for any possible action that they can perform
+                # once they are given the norm
+                action_fitnesses = sub_population.fitness[context][norm]
+                action_freqs = sub_population.action_freqs[context][norm]
+                mean_fitness = np.sum([action_fitnesses[action] * action_freqs[action]
+                                       for action in action_space])
+
+                # Update frequency of each action using the Replicator Equation. Clip low action frequencies
+                # to 1e-5 in order to ensure that they never go to zero and hence can be resurrected
+                for action in action_space:
+                    action_freqs[action] = max(action_freqs[action] * (action_fitnesses[action] / mean_fitness), 1e-5)
+
+                # Normalise so that all action frequencies sum up to 1 (just in case due to float point precision)
+                total_freq = np.sum([action_freqs[a] for a in action_space])
+                for action in action_space:
+                    action_freqs[action] /= total_freq

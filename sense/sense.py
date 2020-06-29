@@ -7,6 +7,7 @@ from ensm.norms import Norm
 from collections import defaultdict
 from ast import literal_eval
 
+from pprint import pprint
 import ruamel.yaml as ruamel
 import argparse
 import logging
@@ -34,11 +35,16 @@ def main(config):
                 games_net=games_net,
                 action_spaces=action_spaces,
                 norm_spaces=norm_spaces,
-                max_generations=MAX_GENERATIONS)
+                max_generations=MAX_GENERATIONS,
+                stability_margin=config['stabilityMargin'],
+                min_num_stable_generations=config['minNumStableGenerations'])
 
-    while not ensm.converged:
-        fitnesses = ensm.evolve()
-        logger.info(fitnesses)
+    while not ensm.converged and not ensm.timed_out:
+        action_freqs = ensm.evolve()
+        # logger.info(action_freqs)
+        pprint(action_freqs)
+
+    # pprint(action_freqs)
 
 
 def __create_games(config) -> GamesNetwork:
@@ -56,10 +62,11 @@ def __create_games(config) -> GamesNetwork:
                             contexts=game_cfg['contexts'],
                             utilities={literal_eval(ac_comb): u for ac_comb, u in game_cfg['utilities'].items()}))
 
-    for game_role_a, game_role_b in config['gameDependencies'].items():
-        name_a, role_a = literal_eval(game_role_a)
-        name_b, role_b = literal_eval(game_role_b)
-        dependencies.append(((games[name_a], role_a), (games[name_b], role_b)))
+    if 'gameDependencies' in config:
+        for game_role_a, game_role_b in config['gameDependencies'].items():
+            name_a, role_a = literal_eval(game_role_a)
+            name_b, role_b = literal_eval(game_role_b)
+            dependencies.append(((games[name_a], role_a), (games[name_b], role_b)))
 
     return GamesNetwork(games=games, dependencies=dependencies)
 

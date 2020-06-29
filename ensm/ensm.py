@@ -1,14 +1,28 @@
 from ensm.strategies import StrategyReplicator
+from ensm.agents import AgentSubPopulation
 from ensm.norms import NormReplicator
 from ensm.games import GamesNetwork
 from ensm.mas import MAS
 
 from collections import defaultdict
+from copy import deepcopy
 import numpy as np
 
 
 class ENSM(object):
-    def __init__(self, mas: MAS, games_net: GamesNetwork, action_spaces: dict, norm_spaces: dict, max_generations: int):
+    def __init__(self, mas: MAS, games_net: GamesNetwork, action_spaces: dict, norm_spaces: dict,
+                 max_generations: int, stability_margin: float, min_num_stable_generations: int):
+        """
+
+        :param mas:
+        :param games_net:
+        :param action_spaces:
+        :param norm_spaces:
+        :param max_generations:
+        :param stability_margin:
+        """
+        self.__min_num_stable_generations = min_num_stable_generations
+        self.__stability_margin = stability_margin
         self.__max_generations = max_generations
         self.__action_spaces = action_spaces
         self.__norm_spaces = norm_spaces
@@ -17,10 +31,14 @@ class ENSM(object):
 
         self.__must_evolve_norms = False
         self.__num_generations = 0
+        self.__num_stable_generations = 0
         self.__new_norms = []
 
         self.__converged = False
         self.__timeout = False
+
+        # To save the action frequencies for each context/norm before replication
+        self.__old_action_freqs = defaultdict(dict)
 
         # Dictionary of context -> norm -> frequency that stores the frequencies of each norm in the norm space
         # of each context, no matter the profile of the agents that have the norm. Each norm is provided to the
@@ -81,14 +99,19 @@ class ENSM(object):
             for sub_population in self.mas.population:
                 context_fitness[context][sub_population] = sub_population.fitness[context]
 
-        self.__converged = True  # TODO Change this
+        self.__converged = self.__check_convergence()
         self.__timeout = self.__num_generations > self.__max_generations
 
-        return context_fitness
+        return self.__old_action_freqs
 
     def __evolve_strategies(self):
         """ Evolve strategies """
         for sub_population in self.mas.population:
+
+            # Backup sub-population action frequencies
+            self.__old_action_freqs[sub_population] = deepcopy(sub_population.action_freqs)
+
+            # Update sub-population fitness and replicate
             StrategyReplicator.update_fitness(sub_population=sub_population,
                                               games_net=self.__games_net,
                                               action_spaces=self.action_spaces,
@@ -96,12 +119,15 @@ class ENSM(object):
                                               mean_action_freqs_by_game=self.__mean_action_freqs_by_game,
                                               fitness_aggregation=min)
             StrategyReplicator.replicate(sub_population=sub_population,
-                                         games_net=self.__games_net)
+                                         games_net=self.__games_net,
+                                         action_spaces=self.action_spaces,
+                                         norm_spaces=self.norm_spaces)
 
     def __evolve_norms(self):
         """ Evolve norms """
         for context in self.games_net.contexts:
             NormReplicator.update_utilities(context=context,
+                                            games_net=self.games_net,
                                             norm_space=self.norm_spaces[context],
                                             action_freqs=self.__mean_action_freqs_by_context,
                                             action_freqs_by_norm=self.__mean_action_freqs_by_norm)
@@ -150,6 +176,32 @@ class ENSM(object):
 
                 self.__mean_action_freqs_by_game[game][role][action] = action_freq
 
+    def __check_convergence(self):
+        """
+
+        :return:
+        """
+        stable = True
+
+        for sub_population, context, norm, action in [(p, c, n, a) for p in self.mas.population
+                                                      for c in self.games_net.contexts for n in self.norm_spaces[c]
+                                                      for a in self.__action_spaces[c]]:
+
+            old_action_freq = self.__old_action_freqs[sub_population][context][norm][action]
+            curr_action_freq = sub_population.action_freqs[context][norm][action]
+
+            if abs(old_action_freq - curr_action_freq) > self.__stability_margin:
+                stable = False
+                break
+
+        self.__num_stable_generations = self.__num_stable_generations + 1 if stable else 0
+
+        converged = False
+        if self.__num_stable_generations >= self.__min_num_stable_generations:
+            converged = True
+
+        return converged
+
     @property
     def mas(self):
         return self.__mas
@@ -161,6 +213,10 @@ class ENSM(object):
     @property
     def converged(self):
         return self.__converged
+
+    @property
+    def timed_out(self):
+        return self.__timeout
 
     @property
     def games_net(self):
