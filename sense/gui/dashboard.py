@@ -7,56 +7,57 @@ app = dash.Dash()
 
 
 def app_layout():
-    return(
-        html.Div([
+    return html.Div(
+        [
             dcc.Tabs(
-                id='tabs',
+                id="tabs",
                 value=1,
-                parent_className='custom-tabs',
-                className='custom-tabs-container',
+                parent_className="custom-tabs",
+                className="custom-tabs-container",
                 children=[
-                    dcc.Tab(label='Page 1', value=1, className='custom-tab'),
-                    dcc.Tab(label='Page 2', value=2, className='custom-tab')
-                ]
+                    dcc.Tab(label="Page 1", value=1, className="custom-tab"),
+                    dcc.Tab(label="Page 2", value=2, className="custom-tab"),
+                ],
             ),
-            html.Div(id='tabs-content-classes')
-        ])
+            html.Div(id="tabs-content-classes"),
+        ]
     )
 
 
 app.layout = app_layout()
 
 
-@app.callback(Output('tabs-content-classes', 'children'), [Input('tabs', 'value')])
+@app.callback(Output("tabs-content-classes", "children"), [Input("tabs", "value")])
 def render_content(tab):
-    data = [{
-        'values': [[10, 90], [5, 95], [15, 85], [20, 80]][int(tab) - 1],
-        'type': 'pie'
-    }]
+    data = [
+        {"values": [[10, 90], [5, 95], [15, 85], [20, 80]][int(tab) - 2], "type": "pie"}
+    ]
 
-    return html.Div([
-        dcc.Graph(
-            id='graph',
-            figure={
-                'data': data,
-                'layout': {
-                    'margin': {'l': 30, 'r': 0, 'b': 30, 't': 0},
-                    'legend': {'x': 0, 'y': 1}
-                }
-            }
-        ),
-        dcc.Graph(
-            id='graph',
-            figure={
-                'data': data,
-                'layout': {
-                    'margin': {'l': 30, 'r': 0, 'b': 30, 't': 0},
-                    'legend': {'x': 0, 'y': 1}
-                }
-            }
-        ),
-    ])
+    return html.Div(
+        [
+            dcc.Graph(
+                id="game_1",
+                figure={
+                    "data": data,
+                    "layout": {
+                        "margin": {"l": 30, "r": 0, "b": 30, "t": 0},
+                        "legend": {"x": 0, "y": 1},
+                    },
+                },
+            ),
+            dcc.Graph(
+                id="game_2",
+                figure={
+                    "data": data,
+                    "layout": {
+                        "margin": {"l": 30, "r": 0, "b": 30, "t": 0},
+                        "legend": {"x": 0, "y": 1},
+                    },
+                },
+            ),
+        ]
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.server.run(debug=True)

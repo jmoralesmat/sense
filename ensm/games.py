@@ -90,7 +90,9 @@ class GamesNetwork(object):
         # (from a game-role to the context and from the context to the game-roles it plays)
         # TODO Might need to sort contexts for consistence? Check this when testing
         if game_a.contexts[role_a] != game_b.contexts[role_b]:
-            joint_context = ' & '.join([game_a.contexts[role_a], game_b.contexts[role_b]])
+            joint_context = " & ".join(
+                [game_a.contexts[role_a], game_b.contexts[role_b]]
+            )
             self._contexts_per_role[game_a][role_a].add(joint_context)
             self._contexts_per_role[game_b][role_b].add(joint_context)
             self._roles_per_context[joint_context][game_a].add(role_a)

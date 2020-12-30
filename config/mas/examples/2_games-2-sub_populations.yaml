@@ -1,6 +1,7 @@
 name: 2 traffic games with aggressive and prudent drivers
 stabilityMargin: 1e-10
-minNumStableGenerations: 1000
+maxGenerations: 10000
+minNumStableGenerations: 200
 regulate: false
 
 games:
@@ -47,7 +48,7 @@ population:
 
   # Sub-population of aggressive drivers
   - name: Aggressive drivers
-    proportion: 0.8
+    proportion: 0.1
     gamePayoffs:
       - gameName: Intersection game
         payoffs:
@@ -75,7 +76,7 @@ population:
 
   # Sub-population of prudent drivers
   - name: Prudent drivers
-    proportion: 0.2
+    proportion: 0.9
     gamePayoffs:
       - gameName: Intersection game
         payoffs:
