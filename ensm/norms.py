@@ -7,30 +7,33 @@ class Norm(object):
     NORM_COUNT = 0
 
     def __init__(self, context, action, sanction):
-        self.__context = context
-        self.__action = action
-        self.__sanction = sanction
+        self._context = context
+        self._action = action
+        self._sanction = sanction
 
         self.NORM_COUNT += 1
-        self.__id = self.NORM_COUNT
+        self._id = self.NORM_COUNT
 
     @property
     def context(self):
-        return self.__context
+        return self._context
 
     @property
     def action(self):
-        return self.__action
+        return self._action
 
     @property
     def sanction(self):
-        return self.__sanction
+        return self._sanction
 
     def __str__(self):
-        return '{}: ({}) -> {} / {}'.format(self.__id, self.__context, self.__action, self.__sanction)
+        return '{}: ({}) -> {} / {}'.format(self._id, self._context, self._action, self._sanction)
+
+    def __repr__(self):
+        return self.__str__()
 
     def __eq__(self, other):
-        return self.__context == other.context and self.action == other.action
+        return self._context == other.context and self.action == other.action
 
     def __hash__(self):
         return hash(repr(self.context + self.action))

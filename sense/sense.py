@@ -23,11 +23,12 @@ logger.setLevel(logging.INFO)
 def main(config):
 
     # Create the games network, get the action spaces and norm spaces of each possible coordination context
-    # that the agents can play in the games of the MAS, and create agent population as a set of homogeneous
-    # sub-populations, each with a given proportion
-    games_net = __create_games(config)
-    action_spaces, norm_spaces = __create_action_spaces_and_norms(games_net)
-    population = __create_population(games_net, action_spaces, norm_spaces, config)
+    # that the agents can play in the games of the MAS, and create an agent population as a set of homogeneous
+    # sub-populations, each with a given proportion in the population
+    games_net = _create_games(config=config)
+    action_spaces, norm_spaces = _create_action_spaces_and_norms(games_net=games_net, regulate=config['regulate'])
+    population = _create_population(games_net=games_net, action_spaces=action_spaces,
+                                    norm_spaces=norm_spaces, config=config)
 
     # Create the MAS, the Evolutionary Norm Synthesis Machine, and run evolution until convergence
     mas = MAS(games_net=games_net, population=population)
@@ -41,13 +42,13 @@ def main(config):
 
     while not ensm.converged and not ensm.timed_out:
         action_freqs = ensm.evolve()
-        # logger.info(action_freqs)
-        pprint(action_freqs)
+        logger.info(action_freqs)
+        # pprint(action_freqs)
 
-    # pprint(action_freqs)
+    pprint(action_freqs)
 
 
-def __create_games(config) -> GamesNetwork:
+def _create_games(config) -> GamesNetwork:
     """
     Creates a games network adding the games defined in a configuration file
     :param config: configuration file
@@ -71,7 +72,7 @@ def __create_games(config) -> GamesNetwork:
     return GamesNetwork(games=games, dependencies=dependencies)
 
 
-def __create_action_spaces_and_norms(games_net):
+def _create_action_spaces_and_norms(games_net, regulate):
     action_spaces = defaultdict(list)
     norm_spaces = defaultdict(list)
 
@@ -89,18 +90,22 @@ def __create_action_spaces_and_norms(games_net):
             if action not in action_spaces[context]:
                 action_spaces[context].append(action)
 
-                for sanction in sanctions:
-                    norm_spaces[context].append(Norm(context, action, sanction))
+                if regulate:
+                    for sanction in sanctions:
+                        norm_spaces[context].append(Norm(context, action, sanction))
+
+            if not regulate and context not in norm_spaces:
+                norm_spaces[context].append(None)
 
     return action_spaces, norm_spaces
 
 
-def __create_population(games_net: GamesNetwork, action_spaces: dict, norm_spaces: dict, config: dict):
+def _create_population(games_net: GamesNetwork, action_spaces: dict, norm_spaces: dict, config: dict):
     population = []
 
     for sub_population in config['population']:
         assert 'name' in sub_population, 'Missing \'name\' in sub-population'
-        assert 'frequency' in sub_population, f'Missing \'frequency\' in sub-population {sub_population["name"]}'
+        assert 'proportion' in sub_population, f'Missing \'frequency\' in sub-population {sub_population["name"]}'
 
         all_payoffs = defaultdict(lambda: defaultdict(tuple))
         for game_payoffs in sub_population['gamePayoffs']:
@@ -113,7 +118,7 @@ def __create_population(games_net: GamesNetwork, action_spaces: dict, norm_space
                 all_payoffs[game][literal_eval(ac_combination)] = payoffs
 
         population.append(AgentSubPopulation(name=sub_population['name'],
-                                             frequency=sub_population['frequency'],
+                                             proportion=sub_population['proportion'],
                                              payoffs=all_payoffs,
                                              action_spaces=action_spaces,
                                              norm_spaces=norm_spaces))

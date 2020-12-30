@@ -8,47 +8,54 @@ app = dash.Dash()
 
 def app_layout():
     return(
-            html.Div([
-                    dcc.Tabs(
-                        id="tabs-with-classes",
-                        value='tab-2',
-                        parent_className='custom-tabs',
-                        className='custom-tabs-container',
-                        children=[
-                            dcc.Tab(
-                                label='Pie 1',
-                                value='pie-1',
-                                className='custom-tab',
-                                selected_className='custom-tab--pie-1'
-                            ),
-                            dcc.Tab(
-                                label='Pie 2',
-                                value='pie-2',
-                                className='custom-tab',
-                                selected_className='custom-tab--pie-2'
-                            )
-                        ]
-                    ),
-                    html.Div(id='tabs-content-classes')
-                    ]
-            )
+        html.Div([
+            dcc.Tabs(
+                id='tabs',
+                value=1,
+                parent_className='custom-tabs',
+                className='custom-tabs-container',
+                children=[
+                    dcc.Tab(label='Page 1', value=1, className='custom-tab'),
+                    dcc.Tab(label='Page 2', value=2, className='custom-tab')
+                ]
+            ),
+            html.Div(id='tabs-content-classes')
+        ])
     )
 
 
-app.layout=app_layout()
+app.layout = app_layout()
 
 
-@app.callback(Output('tabs-content-classes', 'children'),
-              [Input('tabs-with-classes', 'value')])
+@app.callback(Output('tabs-content-classes', 'children'), [Input('tabs', 'value')])
 def render_content(tab):
-    if tab == 'pie-1':
-        return html.Div([
-            html.H3('Tab content 1')
-        ])
-    elif tab == 'pie-2':
-        return html.Div([
-            html.H3('Tab content 2')
-        ])
+    data = [{
+        'values': [[10, 90], [5, 95], [15, 85], [20, 80]][int(tab) - 1],
+        'type': 'pie'
+    }]
+
+    return html.Div([
+        dcc.Graph(
+            id='graph',
+            figure={
+                'data': data,
+                'layout': {
+                    'margin': {'l': 30, 'r': 0, 'b': 30, 't': 0},
+                    'legend': {'x': 0, 'y': 1}
+                }
+            }
+        ),
+        dcc.Graph(
+            id='graph',
+            figure={
+                'data': data,
+                'layout': {
+                    'margin': {'l': 30, 'r': 0, 'b': 30, 't': 0},
+                    'legend': {'x': 0, 'y': 1}
+                }
+            }
+        ),
+    ])
 
 
 if __name__ == '__main__':

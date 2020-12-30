@@ -10,13 +10,13 @@ class MAS(object):
         :param games_net: list of games to be played by the agents of the population
         :param population: list of AgentSubPopulation, each with a frequency
         """
-        self.__population = population
-        self.__games_net = games_net
+        self._population = population
+        self._games_net = games_net
 
     @property
     def games_net(self):
-        return self.__games_net
+        return self._games_net
 
     @property
     def population(self):
-        return self.__population
+        return self._population
